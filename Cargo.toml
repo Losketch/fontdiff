@@ -1,0 +1,12 @@
+[package]
+name = "font-diff"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+read-fonts = "0.37"
+skrifa = "0.40"
+font-types = "0.11.0"
+sha2 = "0.10"
+base64 = "0.22"
+clap = { version = "4.0", features = ["derive"] }
