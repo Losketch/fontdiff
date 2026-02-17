@@ -26,113 +26,54 @@ struct Args {
     output: PathBuf,
 }
 
-struct RecordingPen {
-    elements: Vec<PathElement>,
-}
+struct HasherPen<'a>(&'a mut Sha256);
 
-impl RecordingPen {
-    fn new() -> Self {
-        Self {
-            elements: Vec::new(),
-        }
-    }
-}
-
-impl OutlinePen for RecordingPen {
+impl OutlinePen for HasherPen<'_> {
     fn move_to(&mut self, x: f32, y: f32) {
-        self.elements.push(PathElement::MoveTo { x, y });
+        self.0.update(b"M");
+        self.0.update(&x.to_le_bytes());
+        self.0.update(&y.to_le_bytes());
     }
-
     fn line_to(&mut self, x: f32, y: f32) {
-        self.elements.push(PathElement::LineTo { x, y });
+        self.0.update(b"L");
+        self.0.update(&x.to_le_bytes());
+        self.0.update(&y.to_le_bytes());
     }
-
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
-        self.elements.push(PathElement::QuadTo {
-            cx0,
-            cy0,
-            x,
-            y,
-        });
+        self.0.update(b"Q");
+        self.0.update(&cx0.to_le_bytes());
+        self.0.update(&cy0.to_le_bytes());
+        self.0.update(&x.to_le_bytes());
+        self.0.update(&y.to_le_bytes());
     }
-
-    fn curve_to(
-        &mut self,
-        cx0: f32,
-        cy0: f32,
-        cx1: f32,
-        cy1: f32,
-        x: f32,
-        y: f32,
-    ) {
-        self.elements.push(PathElement::CurveTo {
-            cx0,
-            cy0,
-            cx1,
-            cy1,
-            x,
-            y,
-        });
+    fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
+        self.0.update(b"C");
+        self.0.update(&cx0.to_le_bytes());
+        self.0.update(&cy0.to_le_bytes());
+        self.0.update(&cx1.to_le_bytes());
+        self.0.update(&cy1.to_le_bytes());
+        self.0.update(&x.to_le_bytes());
+        self.0.update(&y.to_le_bytes());
     }
-
     fn close(&mut self) {
-        self.elements.push(PathElement::Close);
+        self.0.update(b"Z");
     }
-}
-
-fn normalize_pen_value(pen_value: &RecordingPen, precision: u32) -> Vec<String> {
-    pen_value
-        .elements
-        .iter()
-        .map(|elem| match elem {
-            PathElement::MoveTo { x, y } => {
-                format!("M{{{:.prec$},{:.prec$}}}", x, y, prec = precision as usize)
-            }
-            PathElement::LineTo { x, y } => {
-                format!("L{{{:.prec$},{:.prec$}}}", x, y, prec = precision as usize)
-            }
-            PathElement::QuadTo { cx0, cy0, x, y } => {
-                format!("Q{{{:.prec$},{:.prec$},{:.prec$},{:.prec$}}}", cx0, cy0, x, y, prec = precision as usize)
-            }
-            PathElement::CurveTo {
-                cx0,
-                cy0,
-                cx1,
-                cy1,
-                x,
-                y,
-            } => {
-                format!("C{{{:.prec$},{:.prec$},{:.prec$},{:.prec$},{:.prec$},{:.prec$}}}", cx0, cy0, cx1, cy1, x, y, prec = precision as usize)
-            }
-            PathElement::Close => "Z".to_string(),
-        })
-        .collect()
 }
 
 fn glyph_hash(font: &FontRef, glyph_id: GlyphId) -> Option<String> {
-    let mut pen = RecordingPen::new();
+    let mut hasher = Sha256::new();
     let outlines = font.outline_glyphs();
 
     if let Some(glyph) = outlines.get(glyph_id) {
-        let location = LocationRef::default();
-        let settings = DrawSettings::unhinted(Size::unscaled(), location);
+        let mut pen = HasherPen(&mut hasher);
+        let settings = DrawSettings::unhinted(Size::unscaled(), LocationRef::default());
         if glyph.draw(settings, &mut pen).is_err() {
             return None;
         }
     }
 
-    let width: u16 = font
-        .hmtx()
-        .ok()
-        .and_then(|hmtx| hmtx.advance(glyph_id))
-        .unwrap_or(0);
-
-    let normalized = normalize_pen_value(&pen, 2);
-    let data = format!("{:?}", normalized);
-
-    let mut hasher = Sha256::new();
-    hasher.update(data.as_bytes());
-    hasher.update(width.to_be_bytes());
+    let width: u16 = font.hmtx().ok().and_then(|h| h.advance(glyph_id)).unwrap_or(0);
+    hasher.update(&width.to_be_bytes());
 
     Some(format!("{:x}", hasher.finalize()))
 }
@@ -212,120 +153,80 @@ fn init_font_info(font: FontRef) -> FontInfo {
 
 fn diff_fonts(font_a: &FontInfo, font_b: &FontInfo) -> FontDiff {
     let mut result = FontDiff::default();
+    let mut processed_a = HashSet::new();
+    let mut processed_b = HashSet::new();
 
-    let glyphs_a: HashSet<GlyphId> = font_a.glyph_ids.iter().cloned().collect();
-    let glyphs_b: HashSet<GlyphId> = font_b.glyph_ids.iter().cloned().collect();
+    let mut common_unis: Vec<char> = font_a.unicode_to_id.keys()
+        .filter(|u| font_b.unicode_to_id.contains_key(u))
+        .cloned().collect();
+    common_unis.sort_unstable();
 
-    let mut processed_a: HashSet<GlyphId> = HashSet::new();
-    let mut processed_b: HashSet<GlyphId> = HashSet::new();
-
-    let common_unis: HashSet<char> = font_a
-        .unicode_to_id
-        .keys()
-        .cloned()
-        .collect::<HashSet<_>>()
-        .intersection(&font_b.unicode_to_id.keys().cloned().collect())
-        .cloned()
-        .collect();
-
-    let mut common_unis_vec: Vec<char> = common_unis.iter().cloned().collect();
-    common_unis_vec.sort();
-
-    for &uni in &common_unis_vec {
-        let gid_a = font_a.unicode_to_id.get(&uni).copied().unwrap();
-        let gid_b = font_b.unicode_to_id.get(&uni).copied().unwrap();
+    for uni in common_unis {
+        let gid_a = font_a.unicode_to_id[&uni];
+        let gid_b = font_b.unicode_to_id[&uni];
+        processed_a.insert(gid_a);
+        processed_b.insert(gid_b);
 
         let name_a = font_a.id_to_name.get(&gid_a).cloned().unwrap_or_else(|| format!("gid{}", gid_a.to_u32()));
         let name_b = font_b.id_to_name.get(&gid_b).cloned().unwrap_or_else(|| format!("gid{}", gid_b.to_u32()));
 
-        let hash_a = font_a.hashes.get(&gid_a);
-        let hash_b = font_b.hashes.get(&gid_b);
-
-        processed_a.insert(gid_a);
-        processed_b.insert(gid_b);
-
         if name_a == name_b {
-            if hash_a != hash_b {
+            if font_a.hashes.get(&gid_a) != font_b.hashes.get(&gid_b) {
                 result.changed.push(name_a);
             }
         } else {
-            match (hash_a, hash_b) {
-                (Some(ha), Some(hb)) if ha != hb => {
-                    result.modified.push((name_a, name_b));
-                }
-                (Some(ha), Some(hb)) if ha == hb => {
-                    result.renamed.push((name_a, name_b));
-                }
-                _ => {}
-            }
-        }
-    }
-
-    let remaining_a: HashSet<GlyphId> = &glyphs_a - &processed_a;
-    let remaining_b: HashSet<GlyphId> = &glyphs_b - &processed_b;
-
-    let mut used_b_in_rename: HashSet<GlyphId> = HashSet::new();
-
-    for gid_a in &remaining_a {
-        let hash_a = font_a.hashes.get(gid_a);
-
-        if let Some(ha) = hash_a {
-            let mut match_found = None;
-
-            for gid_b in &remaining_b {
-                if used_b_in_rename.contains(gid_b) {
-                    continue;
-                }
-
-                if let Some(hb) = font_b.hashes.get(gid_b) {
-                    if ha == hb {
-                        match_found = Some(*gid_b);
-                        break;
-                    }
-                }
-            }
-
-            if let Some(gid_b) = match_found {
-                let name_a = font_a.id_to_name.get(gid_a).cloned().unwrap_or_else(|| format!("gid{}", gid_a.to_u32()));
-                let name_b = font_b.id_to_name.get(&gid_b).cloned().unwrap_or_else(|| format!("gid{}", gid_b.to_u32()));
+            if font_a.hashes.get(&gid_a) != font_b.hashes.get(&gid_b) {
+                result.modified.push((name_a, name_b));
+            } else {
                 result.renamed.push((name_a, name_b));
-                used_b_in_rename.insert(gid_b);
             }
         }
     }
 
-    let renamed_b_names: HashSet<String> = result
-        .renamed
-        .iter()
-        .map(|(_, b)| b.clone())
-        .chain(result.modified.iter().map(|(_, b)| b.clone()))
-        .collect();
-    let renamed_a_names: HashSet<String> = result
-        .renamed
-        .iter()
-        .map(|(a, _)| a.clone())
-        .chain(result.modified.iter().map(|(a, _)| a.clone()))
-        .collect();
+    let remaining_a: Vec<GlyphId> = font_a.glyph_ids.iter()
+        .filter(|gid| !processed_a.contains(gid)).cloned().collect();
 
-    result.added = remaining_b
-        .iter()
-        .filter_map(|gid| font_b.id_to_name.get(gid))
-        .filter(|name| !renamed_b_names.contains(*name))
-        .cloned()
-        .collect();
+    let mut b_hash_map: HashMap<&str, Vec<GlyphId>> = HashMap::new();
+    for gid_b in font_b.glyph_ids.iter().filter(|gid| !processed_b.contains(gid)) {
+        if let Some(h) = font_b.hashes.get(gid_b) {
+            b_hash_map.entry(h).or_default().push(*gid_b);
+        }
+    }
 
-    result.removed = remaining_a
-        .iter()
-        .filter_map(|gid| font_a.id_to_name.get(gid))
-        .filter(|name| !renamed_a_names.contains(*name))
-        .cloned()
-        .collect();
+    let mut matched_b = HashSet::new();
 
-    result.added.sort();
-    result.removed.sort();
-    result.changed.sort();
-    result.renamed.sort();
-    result.modified.sort();
+    for gid_a in remaining_a {
+        let name_a = font_a.id_to_name.get(&gid_a).cloned().unwrap_or_else(|| format!("gid{}", gid_a.to_u32()));
+
+        let mut found = false;
+        if let Some(h_a) = font_a.hashes.get(&gid_a) {
+            if let Some(gids_b) = b_hash_map.get_mut(h_a.as_str()) {
+                if let Some(gid_b) = gids_b.pop() {
+                    let name_b = font_b.id_to_name.get(&gid_b).cloned().unwrap_or_else(|| format!("gid{}", gid_b.to_u32()));
+                    result.renamed.push((name_a.clone(), name_b));
+                    matched_b.insert(gid_b);
+                    processed_a.insert(gid_a);
+                    processed_b.insert(gid_b);
+                    found = true;
+                }
+            }
+        }
+
+        if !found {
+            result.removed.push(name_a);
+        }
+    }
+
+    for gid_b in font_b.glyph_ids.iter().filter(|gid| !processed_b.contains(gid) && !matched_b.contains(gid)) {
+        let name_b = font_b.id_to_name.get(gid_b).cloned().unwrap_or_else(|| format!("gid{}", gid_b.to_u32()));
+        result.added.push(name_b);
+    }
+
+    result.added.sort_unstable();
+    result.removed.sort_unstable();
+    result.changed.sort_unstable();
+    result.renamed.sort_unstable();
+    result.modified.sort_unstable();
 
     result
 }
