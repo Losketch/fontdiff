@@ -3,10 +3,30 @@ name = "font-diff"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "font_diff"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "font-diff"
+path = "src/main.rs"
+
 [dependencies]
 read-fonts = "0.37"
 skrifa = "0.40"
 font-types = "0.11.0"
 sha2 = "0.10"
 base64 = "0.22"
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.0", features = ["derive"], optional = true }
+wasm-bindgen = { version = "0.2.108", optional = true }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+console_error_panic_hook = "0.1.7"
+
+[profile.release]
+opt-level = 2
+strip = true
+
+[features]
+default = ["clap"]
+wasm = ["wasm-bindgen"]

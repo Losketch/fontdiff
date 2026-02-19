@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Diff - WASM</title>
+</head>
+<body>
+    <div id="app">
+        <h1>Font Diff - WASM</h1>
+        <div id="loading-init">正在初始化...</div>
+        
+        <div id="upload-section" style="display: none;">
+            <div class="file-input-container">
+                <md-filled-button id="old-font-btn">选择旧字体</md-filled-button>
+                <input type="file" id="old-font-input" accept=".ttf,.otf" style="display: none;">
+                <span id="old-font-name" class="file-name">未选择文件</span>
+            </div>
+            
+            <div class="file-input-container">
+                <md-filled-button id="new-font-btn">选择新字体</md-filled-button>
+                <input type="file" id="new-font-input" accept=".ttf,.otf" style="display: none;">
+                <span id="new-font-name" class="file-name">未选择文件</span>
+            </div>
+            
+            <md-filled-button id="diff-btn" disabled>生成 Diff</md-filled-button>
+        </div>
+        
+        <md-linear-progress id="loading" style="display: none;"></md-linear-progress>
+        
+        <div id="error" style="display: none;"></div>
+        
+        <div id="result-actions" style="display: none;">
+            <md-filled-button id="download-btn">下载 HTML</md-filled-button>
+            <md-filled-button id="new-tab-btn">在新窗口打开</md-filled-button>
+        </div>
+    </div>
+</body>
+</html>
