@@ -31,29 +31,29 @@ struct HasherPen<'a>(&'a mut Sha256);
 impl OutlinePen for HasherPen<'_> {
     fn move_to(&mut self, x: f32, y: f32) {
         self.0.update(b"M");
-        self.0.update(&x.to_le_bytes());
-        self.0.update(&y.to_le_bytes());
+        self.0.update(&x.to_bits().to_le_bytes());
+        self.0.update(&y.to_bits().to_le_bytes());
     }
     fn line_to(&mut self, x: f32, y: f32) {
         self.0.update(b"L");
-        self.0.update(&x.to_le_bytes());
-        self.0.update(&y.to_le_bytes());
+        self.0.update(&x.to_bits().to_le_bytes());
+        self.0.update(&y.to_bits().to_le_bytes());
     }
     fn quad_to(&mut self, cx0: f32, cy0: f32, x: f32, y: f32) {
         self.0.update(b"Q");
-        self.0.update(&cx0.to_le_bytes());
-        self.0.update(&cy0.to_le_bytes());
-        self.0.update(&x.to_le_bytes());
-        self.0.update(&y.to_le_bytes());
+        self.0.update(&cx0.to_bits().to_le_bytes());
+        self.0.update(&cy0.to_bits().to_le_bytes());
+        self.0.update(&x.to_bits().to_le_bytes());
+        self.0.update(&y.to_bits().to_le_bytes());
     }
     fn curve_to(&mut self, cx0: f32, cy0: f32, cx1: f32, cy1: f32, x: f32, y: f32) {
         self.0.update(b"C");
-        self.0.update(&cx0.to_le_bytes());
-        self.0.update(&cy0.to_le_bytes());
-        self.0.update(&cx1.to_le_bytes());
-        self.0.update(&cy1.to_le_bytes());
-        self.0.update(&x.to_le_bytes());
-        self.0.update(&y.to_le_bytes());
+        self.0.update(&cx0.to_bits().to_le_bytes());
+        self.0.update(&cy0.to_bits().to_le_bytes());
+        self.0.update(&cx1.to_bits().to_le_bytes());
+        self.0.update(&cy1.to_bits().to_le_bytes());
+        self.0.update(&x.to_bits().to_le_bytes());
+        self.0.update(&y.to_bits().to_le_bytes());
     }
     fn close(&mut self) {
         self.0.update(b"Z");
