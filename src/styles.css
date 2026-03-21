@@ -66,6 +66,15 @@ h1 {
     margin-top: 20px
 }
 
+#progress {
+    font-family: monospace;
+    font-size: 12px;
+    padding: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
 #error {
     background: #ffebee;
     color: #c62828;

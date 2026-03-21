@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::fs;
+use std::time::Instant;
 use clap::Parser;
 use base64::Engine as _;
 use font_diff::*;
@@ -252,20 +253,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     }
 
+    let t0 = Instant::now();
     let font_a_data = fs::read(&args.old)?;
     let font_b_data = fs::read(&args.new)?;
+    println!("[1] Read files: {:.3}s ({} + {})", t0.elapsed().as_secs_f32(), args.old.display(), args.new.display());
 
+    let t1 = Instant::now();
     let font_a_ref = skrifa::font::FontRef::new(&font_a_data)?;
     let font_b_ref = skrifa::font::FontRef::new(&font_b_data)?;
+    println!("[2] Parse font headers: {:.3}s", t1.elapsed().as_secs_f32());
 
+    let t2 = Instant::now();
     let font_a_info = init_font_info(font_a_ref);
+    println!("    Font A: {} glyphs, {} unicode mappings", font_a_info.glyph_ids.len(), font_a_info.unicode_to_id.len());
+    println!("[3] Init font A info: {:.3}s", t2.elapsed().as_secs_f32());
+
+    let t3 = Instant::now();
     let font_b_info = init_font_info(font_b_ref);
+    println!("    Font B: {} glyphs, {} unicode mappings", font_b_info.glyph_ids.len(), font_b_info.unicode_to_id.len());
+    println!("[4] Init font B info: {:.3}s", t3.elapsed().as_secs_f32());
 
+    let t4 = Instant::now();
     let diff = diff_fonts(&font_a_info, &font_b_info);
+    println!("[5] Diff fonts: {:.3}s", t4.elapsed().as_secs_f32());
 
+    let t5 = Instant::now();
     generate_html(&args.old, &args.new, &font_a_info, &font_b_info, &diff, &args.output)?;
+    println!("[6] Generate HTML: {:.3}s", t5.elapsed().as_secs_f32());
 
-    println!("Summary:");
+    println!("\nTotal: {:.3}s", t0.elapsed().as_secs_f32());
+    println!("\nSummary:");
     println!("  Modified (Renamed + Changed): {}", diff.modified.len());
     println!("  Changed (Same Name): {}", diff.changed.len());
     println!("  Renamed (Same Shape): {}", diff.renamed.len());

@@ -17,16 +17,26 @@ skrifa = "0.40"
 font-types = "0.11.0"
 sha2 = "0.10"
 base64 = "0.22"
+rayon = { version = "1.8", optional = true }
 clap = { version = "4.0", features = ["derive"], optional = true }
 wasm-bindgen = { version = "0.2.108", optional = true }
 
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon = "1.8"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"
+web-sys = { version = "0.3", features = ["console"] }
 
 [profile.release]
-opt-level = 2
+opt-level = 3
 strip = true
+lto = true
+codegen-units = 1
 
 [features]
 default = ["clap"]
 wasm = ["wasm-bindgen"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
