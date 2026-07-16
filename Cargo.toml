@@ -1,6 +1,6 @@
 [package]
 name = "font-diff"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 [lib]
@@ -12,9 +12,9 @@ name = "font-diff"
 path = "src/main.rs"
 
 [dependencies]
-read-fonts = "0.37"
-skrifa = "0.40"
-font-types = "0.11.0"
+read-fonts = "0.41"
+skrifa = "0.44"
+font-types = "0.12.1"
 base64 = "0.22"
 rayon = { version = "1.8", optional = true }
 clap = { version = "4.0", features = ["derive"], optional = true }
