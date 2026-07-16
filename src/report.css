@@ -1,0 +1,25 @@
+body { font-family: sans-serif; padding: 20px; }
+h2 { margin-top: 32px; border-bottom: 2px solid #eee; padding-bottom: 8px; clear: both; }
+.section { margin: 12px 0 24px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; background: #fcfcfc; display: flex; flex-wrap: wrap; gap: 10px; }
+.section.modified { border-color: #ffcc80; background: #fff8f0; }
+.section.renamed { border-color: #e6ccff; background: #fdfaff; }
+.section.changed { border-color: #f2bcbc; background: #fff0f0; }
+.section.added { border-color: #bde5bd; }
+.section.removed { border-color: #ddd; }
+.row { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 4px; width: 110px; padding: 8px; border-radius: 4px; }
+.row:hover { background: rgba(0, 0, 0, .04); }
+.meta { font-size: 10px; font-family: monospace; color: #555; line-height: 1.2; text-align: center; word-break: break-all; }
+.glyph { font-size: 80px; position: relative; line-height: 1; height: 80px; width: 100%; text-align: center; }
+.old { color: rgba(255, 0, 0, .6); font-family: "FontA"; position: absolute; left: 0; top: 0; width: 100%; }
+.new { color: rgba(0, 0, 255, .6); font-family: "FontB"; position: absolute; left: 0; top: 0; width: 100%; }
+.modified .old { color: rgba(255, 69, 0, .6); }
+.modified .new { color: rgba(30, 144, 255, .8); z-index: 2; }
+.added { color: green; font-family: "FontB"; }
+.removed { color: #999; font-family: "FontA"; }
+.renamed-char { color: purple; font-family: "FontA"; }
+.tag { display: inline-block; font-size: 9px; padding: 2px 4px; border-radius: 3px; font-weight: bold; margin-bottom: 4px; }
+.tag.modified { background: #ffe0b2; color: #e65100; }
+.tag.renamed { background: #e6ccff; color: #8a2be2; }
+.tag.added { background: #e6ffe6; color: #0a0; }
+.tag.removed { background: #f2f2f2; color: #666; }
+.tag.changed { background: #ffcdd2; color: #c00; }
