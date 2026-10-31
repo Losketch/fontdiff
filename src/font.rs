@@ -50,7 +50,17 @@ pub fn init_font_info(font: FontRef<'_>) -> FontInfo {
     for (codepoint, gid) in Charmap::new(&font).mappings() {
         if let Some(ch) = char::from_u32(codepoint) {
             unicode_to_id.insert(ch, gid);
-            id_to_unicode.insert(gid, ch);
+            // A glyph may be mapped by multiple Unicode codepoints. Retain
+            // a stable representative for the HTML preview (the lowest one).
+            // The full cmap still lives in `unicode_to_id` for diff matching.
+            id_to_unicode
+                .entry(gid)
+                .and_modify(|current| {
+                    if ch < *current {
+                        *current = ch;
+                    }
+                })
+                .or_insert(ch);
         }
     }
     log_time!(

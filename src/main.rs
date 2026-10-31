@@ -1,5 +1,5 @@
 use clap::Parser;
-use font_diff::{compare_font_data, generate_html_report, HtmlOptions};
+use font_diff::{compare_font_data, font_mime_type, generate_html_report, HtmlOptions};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -42,8 +42,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &comparison.new,
         &comparison.diff,
         HtmlOptions {
-            old_mime: mime_type(&args.old),
-            new_mime: mime_type(&args.new),
+            old_mime: font_mime_type(&font_a_data),
+            new_mime: font_mime_type(&font_b_data),
             old_label: Some(&old_label),
             new_label: Some(&new_label),
         },
@@ -67,12 +67,5 @@ fn ensure_exists(path: &Path, label: &str) -> Result<(), Box<dyn std::error::Err
         Ok(())
     } else {
         Err(format!("{label} font file not found: {}", path.display()).into())
-    }
-}
-
-fn mime_type(path: &Path) -> &'static str {
-    match path.extension().and_then(|extension| extension.to_str()) {
-        Some(extension) if extension.eq_ignore_ascii_case("otf") => "font/otf",
-        _ => "font/ttf",
     }
 }

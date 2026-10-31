@@ -34,17 +34,32 @@ pub fn compare_font_data(
     Ok(FontComparison { old, new, diff })
 }
 
+// Prefer font signatures over filenames: browser uploads may have arbitrary
+// names, and OpenType CFF fonts require font/otf rather than font/ttf.
+pub fn font_mime_type(data: &[u8]) -> &'static str {
+    if data.starts_with(b"OTTO") {
+        "font/otf"
+    } else {
+        "font/ttf"
+    }
+}
+
 pub fn run_diff_core(
     old_data: &[u8],
     new_data: &[u8],
 ) -> Result<String, Box<dyn std::error::Error>> {
     let comparison = compare_font_data(old_data, new_data)?;
-    Ok(generate_html_string(
+    Ok(generate_html_report(
         old_data,
         new_data,
         &comparison.old,
         &comparison.new,
         &comparison.diff,
+        HtmlOptions {
+            old_mime: font_mime_type(old_data),
+            new_mime: font_mime_type(new_data),
+            ..HtmlOptions::default()
+        },
     ))
 }
 

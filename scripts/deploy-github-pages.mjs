@@ -32,7 +32,7 @@ function runVisible(cwd, command, args, options = {}) {
   });
 }
 
-function runNpm(args) {
+function runPnpm(args) {
   if (process.platform === 'win32') {
     runVisible(projectRoot, 'cmd.exe', ['/d', '/s', '/c', `pnpm ${args.join(' ')}`]);
   } else {
@@ -45,7 +45,7 @@ function build() {
   runVisible(projectRoot, 'wasm-pack', ['build', '--target', 'web', '--release']);
 
   log('Building Webpack assets...');
-  runNpm(['run', 'build']);
+  runPnpm(['run', 'build']);
 
   if (!fs.existsSync(path.join(distDir, 'index.html'))) {
     throw new Error(`Webpack output is incomplete: ${path.join(distDir, 'index.html')} was not found.`);

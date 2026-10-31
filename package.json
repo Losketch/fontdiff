@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "webpack serve",
-    "build": "webpack",
+    "start": "webpack serve --mode development",
+    "build": "webpack --mode production",
     "deploy:pages": "node ./scripts/deploy-github-pages.mjs"
   },
   "keywords": [],

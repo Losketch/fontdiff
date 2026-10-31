@@ -120,9 +120,7 @@ fn render_names<F>(
     }
     section_start(html, heading, class);
     for name in names {
-        if let Some(ch) = find_char(name) {
-            row(html, tag, class, name, None, ch, class);
-        }
+        row(html, tag, class, name, None, find_char(name), class);
     }
     html.push_str("</div>\n");
 }
@@ -143,9 +141,15 @@ fn render_pairs<F>(
     }
     section_start(html, heading, class);
     for (old, new) in pairs {
-        if let Some(ch) = find_char(old, new) {
-            row(html, tag, class, old, Some(new), ch, glyph_class);
-        }
+        row(
+            html,
+            tag,
+            class,
+            old,
+            Some(new),
+            find_char(old, new),
+            glyph_class,
+        );
     }
     html.push_str("</div>\n");
 }
@@ -160,7 +164,7 @@ fn row(
     class: &str,
     name: &str,
     new_name: Option<&str>,
-    ch: char,
+    ch: Option<char>,
     glyph_class: &str,
 ) {
     let _ = write!(
@@ -171,6 +175,10 @@ fn row(
     if let Some(new_name) = new_name {
         let _ = write!(html, "<br>&#8594;<br><strong>{}</strong>", escape(new_name));
     }
+    let Some(ch) = ch else {
+        html.push_str("<br>No Unicode mapping</div><div class='glyph no-unicode'>No preview</div></div>\n");
+        return;
+    };
     let _ = write!(html, "<br>U+{:04X}</div><div class='glyph'>", ch as u32);
     let escaped = escape(&ch.to_string());
     if glyph_class == "overlay" || class == "changed" {
@@ -201,4 +209,5 @@ mod tests {
     fn escapes_report_text() {
         assert_eq!(escape("<&\"'>"), "&lt;&amp;&quot;&#39;&gt;");
     }
+
 }
