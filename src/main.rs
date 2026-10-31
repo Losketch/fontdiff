@@ -1,5 +1,5 @@
 use clap::Parser;
-use font_diff::{diff_fonts, generate_html_report, init_font_info, HtmlOptions};
+use font_diff::{compare_font_data, generate_html_report, HtmlOptions};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -28,24 +28,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let font_b_data = fs::read(&args.new)?;
     println!("[1] Read files: {:.3}s", started.elapsed().as_secs_f32());
 
-    let parsed = Instant::now();
-    let font_a_ref = skrifa::font::FontRef::new(&font_a_data)?;
-    let font_b_ref = skrifa::font::FontRef::new(&font_b_data)?;
-    println!(
-        "[2] Parse font headers: {:.3}s",
-        parsed.elapsed().as_secs_f32()
-    );
-
     let step = Instant::now();
-    let font_a = init_font_info(font_a_ref);
-    println!("[3] Init font A: {:.3}s", step.elapsed().as_secs_f32());
-    let step = Instant::now();
-    let font_b = init_font_info(font_b_ref);
-    println!("[4] Init font B: {:.3}s", step.elapsed().as_secs_f32());
-
-    let step = Instant::now();
-    let diff = diff_fonts(&font_a, &font_b);
-    println!("[5] Diff fonts: {:.3}s", step.elapsed().as_secs_f32());
+    let comparison = compare_font_data(&font_a_data, &font_b_data)?;
+    println!("[2] Compare fonts: {:.3}s", step.elapsed().as_secs_f32());
 
     let step = Instant::now();
     let old_label = args.old.display().to_string();
@@ -53,9 +38,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let html = generate_html_report(
         &font_a_data,
         &font_b_data,
-        &font_a,
-        &font_b,
-        &diff,
+        &comparison.old,
+        &comparison.new,
+        &comparison.diff,
         HtmlOptions {
             old_mime: mime_type(&args.old),
             new_mime: mime_type(&args.new),
@@ -64,15 +49,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     );
     fs::write(&args.output, html)?;
-    println!("[6] Generate HTML: {:.3}s", step.elapsed().as_secs_f32());
+    println!("[3] Generate HTML: {:.3}s", step.elapsed().as_secs_f32());
 
     println!("\nTotal: {:.3}s", started.elapsed().as_secs_f32());
     println!("\nSummary:");
-    println!("  Modified (Renamed + Changed): {}", diff.modified.len());
-    println!("  Changed (Same Name): {}", diff.changed.len());
-    println!("  Renamed (Same Shape): {}", diff.renamed.len());
-    println!("  Added: {}", diff.added.len());
-    println!("  Removed: {}", diff.removed.len());
+    println!("  Modified (Renamed + Changed): {}", comparison.diff.modified.len());
+    println!("  Changed (Same Name): {}", comparison.diff.changed.len());
+    println!("  Renamed (Same Shape): {}", comparison.diff.renamed.len());
+    println!("  Added: {}", comparison.diff.added.len());
+    println!("  Removed: {}", comparison.diff.removed.len());
     println!("Output: {}", args.output.display());
     Ok(())
 }

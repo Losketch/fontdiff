@@ -16,16 +16,35 @@ pub struct FontDiff {
     pub modified: Vec<(String, String)>,
 }
 
+// One comparison result is shared by the CLI and WASM reporting paths.
+// Keep parsing/diffing separate from HTML rendering without a generic pipeline.
+pub struct FontComparison {
+    pub old: FontInfo,
+    pub new: FontInfo,
+    pub diff: FontDiff,
+}
+
+pub fn compare_font_data(
+    old_data: &[u8],
+    new_data: &[u8],
+) -> Result<FontComparison, Box<dyn std::error::Error>> {
+    let old = init_font_info(skrifa::font::FontRef::new(old_data)?);
+    let new = init_font_info(skrifa::font::FontRef::new(new_data)?);
+    let diff = diff_fonts(&old, &new);
+    Ok(FontComparison { old, new, diff })
+}
+
 pub fn run_diff_core(
     old_data: &[u8],
     new_data: &[u8],
 ) -> Result<String, Box<dyn std::error::Error>> {
-    let font_a = init_font_info(skrifa::font::FontRef::new(old_data)?);
-    let font_b = init_font_info(skrifa::font::FontRef::new(new_data)?);
-    let diff = diff_fonts(&font_a, &font_b);
-
+    let comparison = compare_font_data(old_data, new_data)?;
     Ok(generate_html_string(
-        old_data, new_data, &font_a, &font_b, &diff,
+        old_data,
+        new_data,
+        &comparison.old,
+        &comparison.new,
+        &comparison.diff,
     ))
 }
 

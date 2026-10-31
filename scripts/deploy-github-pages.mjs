@@ -34,9 +34,9 @@ function runVisible(cwd, command, args, options = {}) {
 
 function runNpm(args) {
   if (process.platform === 'win32') {
-    runVisible(projectRoot, 'cmd.exe', ['/d', '/s', '/c', `npm ${args.join(' ')}`]);
+    runVisible(projectRoot, 'cmd.exe', ['/d', '/s', '/c', `pnpm ${args.join(' ')}`]);
   } else {
-    runVisible(projectRoot, 'npm', args);
+    runVisible(projectRoot, 'pnpm', args);
   }
 }
 
